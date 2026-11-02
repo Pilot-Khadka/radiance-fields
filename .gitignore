@@ -3,6 +3,8 @@ dataset/
 *.mp4
 *.pth
 *.pt
+eval_results*/
+kaggle_scripts/
 
 
 # Byte-compiled / optimized / DLL files

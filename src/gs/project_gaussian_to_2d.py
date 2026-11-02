@@ -11,7 +11,8 @@ def calculate_covariance(
     rotation: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Given scale and rotation from the gaussian, built the covariance matrix
+    Given scale and rotation from the gaussian, built the covariance matrix.
+
         sum = (R.S) (R.S)^T = R.diag(S^2).(R^T)
 
     inputs:
@@ -33,9 +34,7 @@ def project_gaussians(
     cov3d: torch.Tensor,
     camera: Camera,
 ):
-    """
-    Bring the gaussians to camera space first, then project them onto screen
-    """
+    """Bring the gaussians to camera space first, then project them onto screen."""
 
     R_cam = camera.R  # (3, 3)
     t_cam = camera.t  # (3,)
@@ -54,6 +53,12 @@ def project_gaussians(
     # Broadcasting: (3,3) @ (N,3,3) @ (3,3)
     cov_cam = R_cam @ cov3d @ R_cam.T  # (N, 3, 3)
 
+    # the jacobian is only a good approximation near the view frustum
+    lim_x = 1.3 * 0.5 * camera.width / camera.fx
+    lim_y = 1.3 * 0.5 * camera.height / camera.fy
+    X = (X / Z).clamp(-lim_x, lim_x) * Z
+    Y = (Y / Z).clamp(-lim_y, lim_y) * Z
+
     zeros = torch.zeros_like(Z)
     J = torch.stack(
         [
@@ -68,6 +73,8 @@ def project_gaussians(
     ).reshape(-1, 2, 3)  # (N, 2, 3)
 
     cov2d = J @ cov_cam @ J.transpose(-1, -2)  # (N, 2, 2)
+    # low pass filter, every gaussian covers at least about one pixel
+    cov2d = cov2d + 0.3 * torch.eye(2, device=cov2d.device)
 
     return mean2d, cov2d, Z, valid
 

@@ -1,17 +1,8 @@
-# neural-radiance-fields
+# radiance-fields
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/53a4abd4-f6b3-4479-9496-bbe187822dfe"
-         width="600"
-         autoplay
-         loop
-         muted
-         playsinline>
-  </video>
+  <img src="assets/gs_lego.gif" width="400" alt="Gaussian splatting render of the lego scene">
 </p>
-A minimal, from-scratch implementation of NeRF for volumetric rendering and view synthesis.
-
-> **Note:**
-> The wave-like distortion in the LEGO rotation comes from using **fixed-size raymarching steps** in the analytic renderer.
+A minimal, from-scratch implementation of NeRF and 3D Gaussian Splatting for view synthesis.
 
 ### **installation**
 First install **PyTorch** appropriate for your system. Check your CUDA version with `nvidia-smi`, then:
@@ -26,7 +17,7 @@ uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu
 
 Then install the rest of the dependencies:
 ```bash
-uv sync && source .venv/bin/activate
+uv sync --inexact && source .venv/bin/activate
 ```
 
 ### **dataset preparation**
@@ -49,18 +40,52 @@ dataset/
 **train NeRF**
 
 ```bash
-python train.py
+python train_nerf.py
 ```
 
 **Evaluate a trained NeRF**
 
 ```bash
-python evaluate.py
+python evaluate_nerf.py
 ```
 Outputs include PSNR metrics and rendered trajectories
+
+### **gaussian splatting**
+A pure PyTorch implementation of 3D Gaussian Splatting, including a differentiable tile-based rasterizer, spherical harmonics colors and adaptive density control (clone, split, prune).
+
+**train**
+
+```bash
+python train_gs.py
+```
+Trains on `lego` at 400x400 and saves `checkpoints/gs_model.pt`. Resolution, iterations and densification schedule are set at the top of `train_gs.py`.
+
+**evaluate**
+
+```bash
+python evaluate_gs.py
+python scripts/convert_to_mp4.py eval_results_gs
+```
+
+### **results**
+Mean PSNR over the 200 `lego` test views.
+
+| method               | resolution | test PSNR |
+|----------------------|------------|-----------|
+| NeRF                 | 800x800    | 21.50 dB  |
+| Gaussian Splatting   | 400x400    | 34.44 dB  |
+
+The NeRF falls short of the ~32 dB reported in the paper, mainly because:
+- there is no hierarchical sampling, only a single coarse network, while the paper adds a fine network that resamples 128 points along each ray where the coarse pass found density
+- `evaluate_nerf.py` uses 32 samples per ray while `train_nerf.py` trains with 64
+- training is much shorter, about 25k steps of 512 rays versus 100k-300k steps of 4096 rays in the paper
 
 ### **references**
 - Mildenhall, Ben, Pratul P. Srinivasan, Matthew Tancik, Jonathan T. Barron, Ravi Ramamoorthi, and Ren Ng.
   **NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis**.
   *European Conference on Computer Vision (ECCV)*, 2020.
   [https://arxiv.org/abs/2003.08934](https://arxiv.org/abs/2003.08934)
+- Kerbl, Bernhard, Georgios Kopanas, Thomas Leimkühler, and George Drettakis.
+  **3D Gaussian Splatting for Real-Time Radiance Field Rendering**.
+  *ACM Transactions on Graphics (SIGGRAPH)*, 2023.
+  [https://arxiv.org/abs/2308.04079](https://arxiv.org/abs/2308.04079)

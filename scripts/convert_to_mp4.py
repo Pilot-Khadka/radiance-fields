@@ -1,5 +1,6 @@
 import re
 import os
+import sys
 from pathlib import Path
 
 import cv2
@@ -60,4 +61,5 @@ def convert_folder_to_mp4(folder_path, fps=30):
 
 
 if __name__ == "__main__":
-    convert_folder_to_mp4("eval_results", fps=30)
+    folder = sys.argv[1] if len(sys.argv) > 1 else "eval_results"
+    convert_folder_to_mp4(folder, fps=30)
